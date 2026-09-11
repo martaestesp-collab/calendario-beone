@@ -6,6 +6,8 @@
 <title>Agenda de congresos</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <style>
   :root{
     --paper: #F3F2EF;
@@ -253,6 +255,7 @@
   <header>
     <h1>Agenda de congresos</h1>
     <p>Tus fechas de congresos y reuniones, organizadas por línea de trabajo, con aviso de qué preparar antes de cada uno.</p>
+    <p id="cloud-status" style="font-size:0.8rem;margin-top:6px;"></p>
   </header>
 
   <div class="alerts-title">Próximos avisos</div>
@@ -322,6 +325,66 @@
 </div>
 
 <script>
+// Almacenamiento local del navegador (para uso fuera de Claude, ej. GitHub Pages)
+// ---- PEGA AQUÍ TU CONFIGURACIÓN DE FIREBASE ----
+// La sacas de: Firebase Console → tu proyecto → icono de engranaje →
+// "Configuración del proyecto" → sección "Tus apps" → app web → "Config"
+const FIREBASE_CONFIG = {
+  // Import the functions you need from the SDKs you need
+import { initializeApp } from "firebase/app";
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
+
+// Your web app's Firebase configuration
+const firebaseConfig = {
+  apiKey: "AIzaSyBo2RccmbMREVBXuhyHMahkyp9ReT-mGCE",
+  authDomain: "beone-agenda.firebaseapp.com",
+  projectId: "beone-agenda",
+  storageBucket: "beone-agenda.firebasestorage.app",
+  messagingSenderId: "711065021442",
+  appId: "1:711065021442:web:134a5bb399a58540924b1b"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+};
+// No cambies esto: es el identificador privado de tus datos compartidos.
+const DOC_ID = "xSJLfe6LS9Mtd3cuhQxaPMJL";
+// --------------------------------------------------
+
+let db = null;
+let useCloud = false;
+try{
+  if(FIREBASE_CONFIG.apiKey && FIREBASE_CONFIG.apiKey !== "TU_API_KEY"){
+    firebase.initializeApp(FIREBASE_CONFIG);
+    db = firebase.firestore();
+    useCloud = true;
+  }
+}catch(e){
+  console.error('No se pudo iniciar Firebase, se usará guardado solo en este dispositivo.', e);
+}
+
+const storage = {
+  async get(key){
+    if(useCloud){
+      const snap = await db.collection('agenda').doc(DOC_ID).get();
+      if(!snap.exists) return null;
+      const data = snap.data();
+      return data && data[key] !== undefined ? { key, value: data[key] } : null;
+    }
+    const v = localStorage.getItem(key);
+    return v !== null ? { key, value: v } : null;
+  },
+  async set(key, value){
+    if(useCloud){
+      await db.collection('agenda').doc(DOC_ID).set({ [key]: value }, { merge: true });
+      return { key, value };
+    }
+    localStorage.setItem(key, value);
+    return { key, value };
+  }
+};
+
 const EVENTS_KEY = 'events';
 const CATS_KEY = 'categories';
 const PALETTE = ['#D62A1E','#263449','#C2703D','#6B5B95','#4C6FA6','#8A8F3F','#A85C99','#3F7D52'];
@@ -361,20 +424,20 @@ function colorFor(ev){
 
 async function loadAll(){
   try{
-    const res = await window.storage.get(EVENTS_KEY, false);
+    const res = await storage.get(EVENTS_KEY, false);
     events = res && res.value ? JSON.parse(res.value) : [];
   }catch(e){ events = []; }
   try{
-    const res = await window.storage.get(CATS_KEY, false);
+    const res = await storage.get(CATS_KEY, false);
     categories = res && res.value ? JSON.parse(res.value) : [];
   }catch(e){ categories = []; }
 }
 async function saveEvents(){
-  try{ await window.storage.set(EVENTS_KEY, JSON.stringify(events), false); }
+  try{ await storage.set(EVENTS_KEY, JSON.stringify(events), false); }
   catch(e){ console.error('No se pudo guardar eventos', e); }
 }
 async function saveCategories(){
-  try{ await window.storage.set(CATS_KEY, JSON.stringify(categories), false); }
+  try{ await storage.set(CATS_KEY, JSON.stringify(categories), false); }
   catch(e){ console.error('No se pudo guardar líneas', e); }
 }
 
@@ -628,6 +691,14 @@ document.getElementById('next-month').addEventListener('click', () => {
   const now = new Date();
   viewYear = now.getFullYear();
   viewMonth = now.getMonth();
+  const statusEl = document.getElementById('cloud-status');
+  if(useCloud){
+    statusEl.textContent = '● Guardado en la nube, sincronizado entre dispositivos';
+    statusEl.style.color = 'var(--teal)';
+  } else {
+    statusEl.textContent = '● Guardado solo en este dispositivo (Firebase no configurado todavía)';
+    statusEl.style.color = 'var(--ink-soft)';
+  }
   await loadAll();
   render();
 })();
