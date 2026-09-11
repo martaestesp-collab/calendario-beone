@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agenda de congresos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper: #F3F2EF;
+    --paper-raised: #FAF9F7;
+    --ink: #263449;
+    --ink-soft: #5C6779;
+    --line: #D8D5CC;
+    --amber: #D62A1E;
+    --amber-soft: #F6D9D5;
+    --teal: #263449;
+    --teal-soft: #DEE2E9;
+    --radius: 3px;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'Inter',sans-serif;
+    font-size:15px;
+    line-height:1.5;
+    padding:32px 20px 60px;
+  }
+  .wrap{max-width:1080px;margin:0 auto;}
+  header{margin-bottom:28px;}
+  h1{
+    font-family:'Fraunces',serif;
+    font-weight:600;
+    font-size:2.1rem;
+    margin:0 0 4px;
+    letter-spacing:-0.01em;
+  }
+  header p{margin:0;color:var(--ink-soft);}
+
+  /* Alerts strip */
+  .alerts-title{font-size:0.85rem;color:var(--ink-soft);margin:0 0 10px;}
+  .alerts-row{
+    display:flex;
+    gap:14px;
+    overflow-x:auto;
+    padding-bottom:6px;
+    margin-bottom:28px;
+  }
+  .alerts-empty{
+    color:var(--ink-soft);
+    font-style:italic;
+    padding:14px 0;
+  }
+  .ticket{
+    flex:0 0 auto;
+    width:260px;
+    background:var(--paper-raised);
+    border:1px solid var(--line);
+    border-left:5px solid var(--amber);
+    border-radius:var(--radius);
+    padding:14px 16px;
+    position:relative;
+  }
+  .ticket .days{
+    font-family:'Fraunces',serif;
+    font-weight:600;
+    font-size:1.3rem;
+    color:var(--amber);
+  }
+  .ticket .title-row{display:flex;align-items:center;gap:6px;margin:2px 0 6px;}
+  .ticket .dot{width:9px;height:9px;border-radius:50%;flex:0 0 auto;}
+  .ticket .title{font-weight:600;}
+  .ticket .notes{font-size:0.85rem;color:var(--ink-soft);white-space:pre-wrap;}
+  .ticket .done-btn{
+    margin-top:10px;
+    background:none;
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    padding:4px 10px;
+    font-size:0.78rem;
+    color:var(--ink-soft);
+    cursor:pointer;
+  }
+  .ticket .done-btn:hover{border-color:var(--amber);color:var(--amber);}
+
+  /* Legend */
+  .legend{
+    display:flex;flex-wrap:wrap;gap:8px;margin-bottom:28px;
+  }
+  .legend-chip{
+    display:flex;align-items:center;gap:6px;
+    border:1px solid var(--line);
+    border-radius:20px;
+    padding:4px 10px 4px 8px;
+    font-size:0.8rem;
+    background:var(--paper-raised);
+    cursor:pointer;
+  }
+  .legend-chip.active{border-color:var(--ink);background:#fff;}
+  .legend-chip .dot{width:9px;height:9px;border-radius:50%;flex:0 0 auto;}
+  .legend-chip .rm{color:var(--ink-soft);font-size:0.75rem;margin-left:2px;}
+  .legend-chip .rm:hover{color:#B0402F;}
+
+  /* Main grid */
+  .grid{
+    display:grid;
+    grid-template-columns:280px 1fr;
+    gap:24px;
+    align-items:start;
+  }
+  @media (max-width:760px){
+    .grid{grid-template-columns:1fr;}
+  }
+
+  .card{
+    background:var(--paper-raised);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    padding:18px 18px 20px;
+  }
+  .card + .card{margin-top:20px;}
+  .card h2{
+    font-family:'Fraunces',serif;
+    font-size:1.05rem;
+    font-weight:600;
+    margin:0 0 14px;
+  }
+
+  label{display:block;font-size:0.82rem;color:var(--ink-soft);margin:12px 0 4px;}
+  label:first-of-type{margin-top:0;}
+  input[type=text], input[type=date], input[type=number], textarea, select{
+    width:100%;
+    font-family:inherit;
+    font-size:0.92rem;
+    padding:8px 10px;
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    background:#fff;
+    color:var(--ink);
+  }
+  textarea{resize:vertical;min-height:64px;}
+  input:focus, textarea:focus, select:focus, button:focus{
+    outline:2px solid var(--teal);
+    outline-offset:1px;
+  }
+  .save-btn{
+    margin-top:16px;
+    width:100%;
+    background:var(--ink);
+    color:var(--paper-raised);
+    border:none;
+    border-radius:var(--radius);
+    padding:10px;
+    font-size:0.9rem;
+    font-weight:500;
+    cursor:pointer;
+  }
+  .save-btn:hover{background:var(--amber);}
+
+  .swatches{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px;}
+  .swatch{
+    width:26px;height:26px;border-radius:50%;
+    cursor:pointer;border:2px solid transparent;
+  }
+  .swatch.selected{border-color:var(--ink);}
+
+  .ev-list{list-style:none;margin:0;padding:0;}
+  .ev-list li{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    padding:9px 0;
+    border-bottom:1px solid var(--line);
+    font-size:0.86rem;
+  }
+  .ev-list li:last-child{border-bottom:none;}
+  .ev-list .dot{width:8px;height:8px;border-radius:50%;flex:0 0 auto;}
+  .ev-list .ev-date{color:var(--teal);font-weight:500;white-space:nowrap;}
+  .ev-list .ev-title{flex:1;margin:0 8px;}
+  .ev-list button{
+    background:none;border:none;color:var(--ink-soft);
+    cursor:pointer;font-size:0.95rem;line-height:1;
+  }
+  .ev-list button:hover{color:#B0402F;}
+  .empty-note{color:var(--ink-soft);font-style:italic;font-size:0.86rem;}
+
+  /* Calendar */
+  .cal-header{
+    display:flex;align-items:center;justify-content:space-between;
+    margin-bottom:14px;
+  }
+  .cal-header h2{margin:0;}
+  .cal-nav{display:flex;gap:6px;align-items:center;}
+  .cal-nav button{
+    background:none;border:1px solid var(--line);border-radius:var(--radius);
+    width:30px;height:30px;cursor:pointer;font-size:1rem;color:var(--ink);
+  }
+  .cal-nav button:hover{border-color:var(--amber);color:var(--amber);}
+  .weekdays{
+    display:grid;grid-template-columns:repeat(7,1fr);
+    font-size:0.75rem;color:var(--ink-soft);margin-bottom:6px;
+  }
+  .weekdays div{text-align:center;padding:4px 0;}
+  .days-grid{
+    display:grid;grid-template-columns:repeat(7,1fr);
+    grid-auto-rows:86px;
+    gap:4px;
+  }
+  .day-cell{
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    background:#fff;
+    padding:6px;
+    font-size:0.8rem;
+    cursor:pointer;
+    display:flex;flex-direction:column;gap:3px;
+    overflow:hidden;
+  }
+  .day-cell.other-month{background:transparent;border-color:transparent;color:#B7B29E;cursor:default;}
+  .day-cell.today{border-color:var(--teal);border-width:2px;}
+  .day-cell.selected{background:var(--teal-soft);}
+  .day-num{font-weight:500;}
+  .day-pill{
+    border-radius:2px;
+    padding:1px 4px;
+    font-size:0.7rem;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+  .day-pill.dimmed{opacity:0.25;}
+  .day-more{font-size:0.68rem;color:var(--ink-soft);}
+
+  .detail-panel{margin-top:16px;}
+  .detail-panel h3{
+    font-family:'Fraunces',serif;font-size:0.95rem;font-weight:600;margin:0 0 10px;
+  }
+  .detail-card{
+    border:1px solid var(--line);border-left:4px solid var(--teal);
+    border-radius:var(--radius);padding:10px 12px;margin-bottom:8px;background:#fff;
+  }
+  .detail-card .t{font-weight:600;}
+  .detail-card .n{font-size:0.85rem;color:var(--ink-soft);white-space:pre-wrap;margin-top:4px;}
+
+  .loading{color:var(--ink-soft);font-style:italic;padding:20px 0;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Agenda de congresos</h1>
+    <p>Tus fechas de congresos y reuniones, organizadas por línea de trabajo, con aviso de qué preparar antes de cada uno.</p>
+  </header>
+
+  <div class="alerts-title">Próximos avisos</div>
+  <div id="alerts" class="alerts-row"><div class="loading">Cargando…</div></div>
+
+  <div id="legend" class="legend"></div>
+
+  <div class="grid">
+    <div class="sidebar">
+      <div class="card">
+        <h2>Añadir evento</h2>
+        <form id="event-form">
+          <label for="f-title">Sobre qué es</label>
+          <input type="text" id="f-title" placeholder="Ej. Congreso Nacional de Cardiología" required>
+
+          <label for="f-date">Fecha</label>
+          <input type="date" id="f-date" required>
+
+          <label for="f-cat">Línea de trabajo</label>
+          <select id="f-cat">
+            <option value="">Sin línea</option>
+            <option value="__new__">+ Nueva línea…</option>
+          </select>
+
+          <div id="new-cat-fields" style="display:none;">
+            <label for="f-cat-name">Nombre de la línea</label>
+            <input type="text" id="f-cat-name" placeholder="Ej. Investigación clínica">
+            <label>Color</label>
+            <div class="swatches" id="swatches"></div>
+          </div>
+
+          <label for="f-notes">Qué debes tener listo</label>
+          <textarea id="f-notes" placeholder="Ej. póster, presentación, certificado de inscripción..."></textarea>
+
+          <label for="f-days">Avisarme con antelación (días)</label>
+          <input type="number" id="f-days" min="1" max="120" value="7">
+
+          <button type="submit" class="save-btn">Guardar evento</button>
+        </form>
+      </div>
+
+      <div class="card">
+        <h2>Todos los eventos</h2>
+        <ul class="ev-list" id="ev-list"><li class="empty-note">Cargando…</li></ul>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="cal-header">
+        <h2 id="cal-title">—</h2>
+        <div class="cal-nav">
+          <button id="prev-month" aria-label="Mes anterior">‹</button>
+          <button id="next-month" aria-label="Mes siguiente">›</button>
+        </div>
+      </div>
+      <div class="weekdays">
+        <div>L</div><div>M</div><div>X</div><div>J</div><div>V</div><div>S</div><div>D</div>
+      </div>
+      <div class="days-grid" id="days-grid"></div>
+
+      <div class="detail-panel" id="detail-panel" style="display:none;">
+        <h3 id="detail-title"></h3>
+        <div id="detail-content"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const EVENTS_KEY = 'events';
+const CATS_KEY = 'categories';
+const PALETTE = ['#D62A1E','#263449','#C2703D','#6B5B95','#4C6FA6','#8A8F3F','#A85C99','#3F7D52'];
+
+let events = [];
+let categories = []; // {id, name, color}
+let viewYear, viewMonth;
+let selectedDate = null;
+let filterCat = null; // category id or null (all)
+let chosenSwatch = PALETTE[0];
+
+const monthNames = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+
+function todayISO(){
+  const d = new Date();
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+function parseISO(iso){
+  const [y,m,d] = iso.split('-').map(Number);
+  return new Date(Date.UTC(y, m-1, d));
+}
+function daysBetween(fromISO, toISO){
+  const a = parseISO(fromISO), b = parseISO(toISO);
+  return Math.round((b-a)/86400000);
+}
+function fmtDate(iso){
+  const d = parseISO(iso);
+  return d.getUTCDate()+' de '+monthNames[d.getUTCMonth()];
+}
+function catFor(id){
+  return categories.find(c => c.id === id) || null;
+}
+function colorFor(ev){
+  const c = catFor(ev.categoryId);
+  return c ? c.color : '#B7B29E';
+}
+
+async function loadAll(){
+  try{
+    const res = await window.storage.get(EVENTS_KEY, false);
+    events = res && res.value ? JSON.parse(res.value) : [];
+  }catch(e){ events = []; }
+  try{
+    const res = await window.storage.get(CATS_KEY, false);
+    categories = res && res.value ? JSON.parse(res.value) : [];
+  }catch(e){ categories = []; }
+}
+async function saveEvents(){
+  try{ await window.storage.set(EVENTS_KEY, JSON.stringify(events), false); }
+  catch(e){ console.error('No se pudo guardar eventos', e); }
+}
+async function saveCategories(){
+  try{ await window.storage.set(CATS_KEY, JSON.stringify(categories), false); }
+  catch(e){ console.error('No se pudo guardar líneas', e); }
+}
+
+function render(){
+  renderCatSelect();
+  renderSwatches();
+  renderLegend();
+  renderAlerts();
+  renderEventList();
+  renderCalendar();
+  renderDetail();
+}
+
+function renderCatSelect(){
+  const sel = document.getElementById('f-cat');
+  const current = sel.value;
+  sel.innerHTML = '<option value="">Sin línea</option>' +
+    categories.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('') +
+    '<option value="__new__">+ Nueva línea…</option>';
+  if([...sel.options].some(o => o.value === current)) sel.value = current;
+}
+
+function renderSwatches(){
+  const box = document.getElementById('swatches');
+  box.innerHTML = PALETTE.map(color => `
+    <div class="swatch ${color === chosenSwatch ? 'selected' : ''}" style="background:${color}" data-color="${color}"></div>
+  `).join('');
+  box.querySelectorAll('.swatch').forEach(sw => {
+    sw.addEventListener('click', () => {
+      chosenSwatch = sw.dataset.color;
+      renderSwatches();
+    });
+  });
+}
+
+function renderLegend(){
+  const box = document.getElementById('legend');
+  if(categories.length === 0){ box.innerHTML = ''; return; }
+  box.innerHTML = `<div class="legend-chip ${filterCat === null ? 'active' : ''}" id="chip-all">
+      <span class="dot" style="background:var(--ink-soft)"></span> Todas
+    </div>` +
+    categories.map(c => `
+      <div class="legend-chip ${filterCat === c.id ? 'active' : ''}" data-id="${c.id}">
+        <span class="dot" style="background:${c.color}"></span> ${escapeHtml(c.name)}
+        <span class="rm" data-rm="${c.id}" title="Eliminar línea">✕</span>
+      </div>
+    `).join('');
+  document.getElementById('chip-all').addEventListener('click', () => { filterCat = null; render(); });
+  box.querySelectorAll('.legend-chip[data-id]').forEach(chip => {
+    chip.addEventListener('click', (e) => {
+      if(e.target.dataset.rm) return;
+      filterCat = filterCat === chip.dataset.id ? null : chip.dataset.id;
+      render();
+    });
+  });
+  box.querySelectorAll('.rm').forEach(rm => {
+    rm.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const id = rm.dataset.rm;
+      categories = categories.filter(c => c.id !== id);
+      events.forEach(ev => { if(ev.categoryId === id) ev.categoryId = ''; });
+      if(filterCat === id) filterCat = null;
+      await saveCategories();
+      await saveEvents();
+      render();
+    });
+  });
+}
+
+function renderAlerts(){
+  const container = document.getElementById('alerts');
+  const today = todayISO();
+  const active = events
+    .filter(ev => !ev.done)
+    .map(ev => ({...ev, remaining: daysBetween(today, ev.date)}))
+    .filter(ev => ev.remaining >= 0 && ev.remaining <= (ev.reminderDays || 7))
+    .sort((a,b) => a.remaining - b.remaining);
+
+  if(active.length === 0){
+    container.innerHTML = '<div class="alerts-empty">Nada urgente por ahora. Avisaremos cuando se acerque una fecha.</div>';
+    return;
+  }
+  container.innerHTML = active.map(ev => `
+    <div class="ticket">
+      <div class="days">${ev.remaining === 0 ? 'Hoy' : ev.remaining === 1 ? 'Mañana' : 'En ' + ev.remaining + ' días'}</div>
+      <div class="title-row"><span class="dot" style="background:${colorFor(ev)}"></span><span class="title">${escapeHtml(ev.title)}</span></div>
+      ${ev.notes ? `<div class="notes">Prepara: ${escapeHtml(ev.notes)}</div>` : ''}
+      <button class="done-btn" data-id="${ev.id}">Ya lo tengo listo</button>
+    </div>
+  `).join('');
+  container.querySelectorAll('.done-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const ev = events.find(e => e.id === btn.dataset.id);
+      if(ev){ ev.done = true; await saveEvents(); render(); }
+    });
+  });
+}
+
+function renderEventList(){
+  const list = document.getElementById('ev-list');
+  const visible = filterCat === null ? events : events.filter(e => e.categoryId === filterCat);
+  if(visible.length === 0){
+    list.innerHTML = `<li class="empty-note">${events.length === 0 ? 'Aún no tienes eventos. Añade el primero.' : 'No hay eventos en esta línea.'}</li>`;
+    return;
+  }
+  const sorted = [...visible].sort((a,b) => a.date.localeCompare(b.date));
+  list.innerHTML = sorted.map(ev => `
+    <li>
+      <span class="dot" style="background:${colorFor(ev)}"></span>
+      <span class="ev-date">${fmtDate(ev.date)}</span>
+      <span class="ev-title">${escapeHtml(ev.title)}</span>
+      <button data-id="${ev.id}" aria-label="Eliminar">✕</button>
+    </li>
+  `).join('');
+  list.querySelectorAll('button').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      events = events.filter(e => e.id !== btn.dataset.id);
+      await saveEvents();
+      render();
+    });
+  });
+}
+
+function renderCalendar(){
+  document.getElementById('cal-title').textContent = monthNames[viewMonth][0].toUpperCase() + monthNames[viewMonth].slice(1) + ' ' + viewYear;
+
+  const grid = document.getElementById('days-grid');
+  grid.innerHTML = '';
+
+  const firstOfMonth = new Date(Date.UTC(viewYear, viewMonth, 1));
+  const startOffset = (firstOfMonth.getUTCDay() + 6) % 7;
+  const daysInMonth = new Date(Date.UTC(viewYear, viewMonth+1, 0)).getUTCDate();
+  const today = todayISO();
+
+  const eventsByDate = {};
+  events.forEach(ev => {
+    (eventsByDate[ev.date] = eventsByDate[ev.date] || []).push(ev);
+  });
+
+  const totalCells = Math.ceil((startOffset + daysInMonth) / 7) * 7;
+
+  for(let i=0; i<totalCells; i++){
+    const dayNum = i - startOffset + 1;
+    const cell = document.createElement('div');
+
+    if(dayNum < 1 || dayNum > daysInMonth){
+      cell.className = 'day-cell other-month';
+      grid.appendChild(cell);
+      continue;
+    }
+
+    const iso = viewYear+'-'+String(viewMonth+1).padStart(2,'0')+'-'+String(dayNum).padStart(2,'0');
+    cell.className = 'day-cell' + (iso === today ? ' today' : '') + (iso === selectedDate ? ' selected' : '');
+
+    const dayEvents = eventsByDate[iso] || [];
+    let inner = `<div class="day-num">${dayNum}</div>`;
+    dayEvents.slice(0,2).forEach(ev => {
+      const dim = filterCat !== null && ev.categoryId !== filterCat;
+      const c = colorFor(ev);
+      inner += `<div class="day-pill ${dim ? 'dimmed' : ''}" style="background:${c}22;color:${c}">${escapeHtml(ev.title)}</div>`;
+    });
+    if(dayEvents.length > 2){
+      inner += `<div class="day-more">+${dayEvents.length - 2} más</div>`;
+    }
+    cell.innerHTML = inner;
+    cell.addEventListener('click', () => {
+      selectedDate = iso;
+      render();
+    });
+    grid.appendChild(cell);
+  }
+}
+
+function renderDetail(){
+  const panel = document.getElementById('detail-panel');
+  if(!selectedDate){
+    panel.style.display = 'none';
+    return;
+  }
+  const dayEvents = events.filter(ev => ev.date === selectedDate);
+  if(dayEvents.length === 0){
+    panel.style.display = 'none';
+    return;
+  }
+  panel.style.display = 'block';
+  document.getElementById('detail-title').textContent = fmtDate(selectedDate);
+  document.getElementById('detail-content').innerHTML = dayEvents.map(ev => `
+    <div class="detail-card" style="border-left-color:${colorFor(ev)}">
+      <div class="t">${escapeHtml(ev.title)}</div>
+      ${ev.notes ? `<div class="n">Prepara: ${escapeHtml(ev.notes)}</div>` : ''}
+    </div>
+  `).join('');
+}
+
+function escapeHtml(str){
+  const div = document.createElement('div');
+  div.textContent = str || '';
+  return div.innerHTML;
+}
+
+document.getElementById('f-cat').addEventListener('change', (e) => {
+  document.getElementById('new-cat-fields').style.display = e.target.value === '__new__' ? 'block' : 'none';
+});
+
+document.getElementById('event-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const title = document.getElementById('f-title').value.trim();
+  const date = document.getElementById('f-date').value;
+  const notes = document.getElementById('f-notes').value.trim();
+  const reminderDays = parseInt(document.getElementById('f-days').value, 10) || 7;
+  const catSel = document.getElementById('f-cat').value;
+  if(!title || !date) return;
+
+  let categoryId = catSel;
+  if(catSel === '__new__'){
+    const name = document.getElementById('f-cat-name').value.trim();
+    if(name){
+      const newCat = { id: Date.now()+'-c-'+Math.random().toString(36).slice(2,6), name, color: chosenSwatch };
+      categories.push(newCat);
+      await saveCategories();
+      categoryId = newCat.id;
+    } else {
+      categoryId = '';
+    }
+  }
+
+  events.push({
+    id: Date.now() + '-' + Math.random().toString(36).slice(2,7),
+    title, date, notes, reminderDays, categoryId, done: false
+  });
+  await saveEvents();
+  e.target.reset();
+  document.getElementById('f-days').value = 7;
+  document.getElementById('new-cat-fields').style.display = 'none';
+  chosenSwatch = PALETTE[0];
+  render();
+});
+
+document.getElementById('prev-month').addEventListener('click', () => {
+  viewMonth--;
+  if(viewMonth < 0){ viewMonth = 11; viewYear--; }
+  render();
+});
+document.getElementById('next-month').addEventListener('click', () => {
+  viewMonth++;
+  if(viewMonth > 11){ viewMonth = 0; viewYear++; }
+  render();
+});
+
+(async function init(){
+  const now = new Date();
+  viewYear = now.getFullYear();
+  viewMonth = now.getMonth();
+  await loadAll();
+  render();
+})();
+</script>
+</body>
+</html>
